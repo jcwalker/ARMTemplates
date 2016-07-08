@@ -197,6 +197,7 @@
     "exchModulesURL": "[concat(parameters('assetLocation'),'FirstExchangeServerARM.ps1.zip')]",
     "adfsModulesURL": "[concat(parameters('assetLocation'),'InstallAdfsServer.ps1.zip')]",
     "wapModulesURL": "[concat(parameters('assetLocation'), 'InstallWapServer.ps1.zip')]",
+    "sqlModulesURL": "[concat(parameters('assetLocation'), 'InstallSql.ps1.zip')]",
     "diagnosticsStorageAccountName": "[variables('vhdStorageName')]",
     "diagnosticsStorageAccountResourceGroup": "[resourcegroup().name]",
     "FirstDCConfigurationFunction": "FirstDC.ps1\\FirstDC",
@@ -270,7 +271,8 @@
     "Adfs1publicIPAddressName": "[concat(parameters('Adfs1Name'), '-PublicIP')]",
     "Dirsync1publicIPAddressName": "[concat(parameters('Dirsync1Name'), '-PublicIP')]",
     "InstallAdfsConfigurationFunction": "InstallAdfsServer.ps1\\InstallAdfsServer",
-    "InstallWapConfigurationFunction": "InstallWapServer.ps1\\InstallWapServer"
+    "InstallWapConfigurationFunction": "InstallWapServer.ps1\\InstallWapServer",
+    "InstallSqlConfigurationFunction": "InstallSql.ps1\\InstallSql"
   },
   "resources": [
     {
@@ -664,7 +666,44 @@
                       }
                   ]
               }
-          }
+          },
+          "resources": [
+              {
+                  "name": "InstallSql",
+                  "type": "extensions",
+                  "location": "[resourceGroup().location]",
+                  "apiVersion": "2015-06-15",
+                "dependsOn": [
+                  "[concat('Microsoft.Compute/virtualMachines/', parameters('SQL1Name'))]",
+                  "[concat('Microsoft.Compute/virtualMachines/', variables('DC1vmName'),'/extensions/FirstDC')]"
+                ],
+                  "tags": {
+                      "displayName": "InstallSql"
+                  },
+                  "properties": {
+                      "publisher": "Microsoft.Powershell",
+                      "type": "DSC",
+                      "typeHandlerVersion": "2.9",
+                      "autoUpgradeMinorVersion": true,
+                      "settings": {
+                          "modulesUrl": "[variables('sqlModulesURL')]",
+                          "configurationFunction": "[variables('InstallSqlConfigurationFunction')]",
+                        "properties": {
+                          "DomainName": "[parameters('domainName')]",
+                          "AdminCreds": {
+                            "UserName": "[parameters('adminUsername')]",
+                            "Password": "PrivateSettingsRef:AdminPassword"
+                          }
+                        }
+                     },
+                     "protectedSettings": {
+                       "Items": {
+                         "AdminPassword": "[parameters('adminPassword')]"
+                       }
+                    }
+                 }
+             }
+          ]
       },
       {
           "name": "[variables('Adfs1NicName')]",
